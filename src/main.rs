@@ -1,17 +1,14 @@
 // Entry point for the Shuttle-powered Axum web server
-use axum::{routing::get, Json, Router};
-use serde_json::{json, Value};
+use shuttle_axum::ShuttleAxum;
 
-async fn health_check() -> Json<Value> {
-    Json(json!({
-        "status": "ok",
-        "version": "0.1.0"
-    }))
-}
+pub mod db;
+pub mod models;
+pub mod pipeline;
+pub mod routes;
 
 #[shuttle_runtime::main]
-async fn main() -> shuttle_axum::ShuttleAxum {
-    let router = Router::new().route("/health", get(health_check));
+async fn main() -> ShuttleAxum {
+    let router = routes::jobs::create_router();
 
     Ok(router.into())
 }
