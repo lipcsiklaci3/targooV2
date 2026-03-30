@@ -1,15 +1,16 @@
 use axum::{
     extract::{Path, Multipart},
-    http::StatusCode,
+    http::{header, StatusCode, Response},
     routing::{get, post},
+    body::Body,
     Json, Router,
 };
 use serde::Serialize;
 use serde_json::{json, Value};
-use uuid::Uuid;
 use tower_http::cors::{Any, CorsLayer};
 
-use crate::pipeline::dispatcher::Dispatcher;
+use crate::pipeline::dispatcher::{Dispatcher, DispatchResult};
+use crate::output::FritzPackage;
 
 #[derive(Serialize)]
 pub struct JobSummary {
@@ -32,14 +33,16 @@ pub async fn health() -> Json<Value> {
     }))
 }
 
-pub async fn upload_job(mut multipart: Multipart) -> Result<Json<JobSummary>, (StatusCode, String)> {
+pub async fn upload_job(mut multipart: Multipart) -> Result<Response<Body>, (StatusCode, String)> {
+    let mut combined = DispatchResult {
+        clean: Vec::new(),
+        best_effort: Vec::new(),
+        quarantined: Vec::new(),
+        total_rows: 0,
+        total_tco2e: 0.0,
+        processing_errors: Vec::new(),
+    };
     let mut total_files = 0;
-    let mut total_rows = 0;
-    let mut total_tco2e = 0.0;
-    let mut clean_rows = 0;
-    let mut best_effort_rows = 0;
-    let mut quarantined_rows = 0;
-    let mut processing_errors = Vec::new();
 
     while let Some(field) = multipart.next_field().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))? {
         let filename = field.file_name().unwrap_or("unknown").to_string();
@@ -48,27 +51,30 @@ pub async fn upload_job(mut multipart: Multipart) -> Result<Json<JobSummary>, (S
         total_files += 1;
         let res = Dispatcher::process_file(&filename, &data);
         
-        total_rows += res.total_rows;
-        total_tco2e += res.total_tco2e;
-        clean_rows += res.clean.len();
-        best_effort_rows += res.best_effort.len();
-        quarantined_rows += res.quarantined.len();
-        processing_errors.extend(res.processing_errors);
+        combined.clean.extend(res.clean);
+        combined.best_effort.extend(res.best_effort);
+        combined.quarantined.extend(res.quarantined);
+        combined.total_rows += res.total_rows;
+        combined.total_tco2e += res.total_tco2e;
+        combined.processing_errors.extend(res.processing_errors);
     }
 
-    let summary = JobSummary {
-        job_id: Uuid::new_v4().to_string(),
-        status: "complete".to_string(),
-        total_files,
-        total_rows,
-        total_tco2e,
-        clean_rows,
-        best_effort_rows,
-        quarantined_rows,
-        processing_errors,
-    };
+    if total_files == 0 {
+        return Err((StatusCode::BAD_REQUEST, "No files uploaded".to_string()));
+    }
 
-    Ok(Json(summary))
+    match FritzPackage::assemble(&combined) {
+        Ok(zip_bytes) => {
+            let response = Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, "application/zip")
+                .header(header::CONTENT_DISPOSITION, "attachment; filename=\"Fritz_Package.zip\"")
+                .body(Body::from(zip_bytes))
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            Ok(response)
+        }
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to assemble ZIP: {}", e))),
+    }
 }
 
 pub async fn get_job_status(Path(job_id): Path<String>) -> Json<Value> {

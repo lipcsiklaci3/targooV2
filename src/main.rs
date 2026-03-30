@@ -5,6 +5,7 @@ pub mod db;
 pub mod models;
 pub mod pipeline;
 pub mod routes;
+pub mod output;
 
 #[shuttle_runtime::main]
 async fn main() -> ShuttleAxum {
