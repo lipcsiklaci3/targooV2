@@ -6,7 +6,6 @@ use serde_json::json;
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 use crate::pipeline::dispatcher::DispatchResult;
-use crate::models::MappingResult;
 
 pub struct FritzPackage;
 
