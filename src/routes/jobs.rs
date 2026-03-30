@@ -64,10 +64,21 @@ pub async fn upload_job(
 
     match FritzPackage::assemble(&combined) {
         Ok(zip_bytes) => {
+            let summary_json = json!({
+                "job_id": job_id,
+                "total_rows": combined.total_rows,
+                "total_tco2e": combined.total_tco2e,
+                "clean_rows": combined.clean.len(),
+                "best_effort_rows": combined.best_effort.len(),
+                "quarantined_rows": combined.quarantined.len(),
+            }).to_string();
+
             let response = Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, "application/zip")
                 .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"Fritz_Package_{}.zip\"", job_id))
+                .header("X-Job-Summary", summary_json)
+                .header("Access-Control-Expose-Headers", "X-Job-Summary")
                 .body(Body::from(zip_bytes))
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             Ok(response)
