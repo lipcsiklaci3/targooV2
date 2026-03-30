@@ -42,7 +42,7 @@ pub async fn upload_job(
         let data = field.bytes().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
         
         total_files += 1;
-        let res = Dispatcher::process_file(&filename, &data);
+        let res = Dispatcher::process_file(&filename, &data, state.groq.as_ref()).await;
         
         combined.clean.extend(res.clean);
         combined.best_effort.extend(res.best_effort);

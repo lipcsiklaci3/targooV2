@@ -1,6 +1,7 @@
 // Result distribution and storage coordination
 use crate::models::MappingResult;
 use crate::pipeline::mapper::Mapper;
+use crate::pipeline::groq::GroqClient;
 use std::io::Cursor;
 use calamine::{Reader, Xlsx, Data};
 use csv::ReaderBuilder;
@@ -145,7 +146,7 @@ fn extract_unit_hint(header: &str) -> String {
     "".to_string()
 }
 
-fn process_rows(rows: Vec<RawRow>) -> DispatchResult {
+async fn process_rows(rows: Vec<RawRow>, groq_client: Option<&GroqClient>) -> DispatchResult {
     let mut clean = Vec::new();
     let mut best_effort = Vec::new();
     let mut quarantined = Vec::new();
@@ -156,7 +157,7 @@ fn process_rows(rows: Vec<RawRow>) -> DispatchResult {
         total_rows += 1;
         for (header, value) in row.headers.iter().zip(row.values.iter()) {
             let unit_hint = extract_unit_hint(header);
-            let res = Mapper::process(header, value, &unit_hint);
+            let res = Mapper::process(header, value, &unit_hint, groq_client).await;
             
             match res.status.as_str() {
                 "clean" => {
@@ -164,6 +165,7 @@ fn process_rows(rows: Vec<RawRow>) -> DispatchResult {
                     clean.push(res);
                 }
                 "best_effort" => {
+                    total_tco2e += res.tco2e; // Added this to include best effort in total tCO2e
                     best_effort.push(res);
                 }
                 _ => {
@@ -186,7 +188,7 @@ fn process_rows(rows: Vec<RawRow>) -> DispatchResult {
 pub struct Dispatcher;
 
 impl Dispatcher {
-    pub fn process_file(filename: &str, data: &[u8]) -> DispatchResult {
+    pub async fn process_file(filename: &str, data: &[u8], groq_client: Option<&GroqClient>) -> DispatchResult {
         let file_type = detect_file_type(filename);
         
         let rows_res = match file_type {
@@ -198,7 +200,7 @@ impl Dispatcher {
         };
 
         match rows_res {
-            Ok(rows) => process_rows(rows),
+            Ok(rows) => process_rows(rows, groq_client).await,
             Err(e) => DispatchResult {
                 clean: Vec::new(),
                 best_effort: Vec::new(),

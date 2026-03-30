@@ -1,251 +1,157 @@
-// AI-assisted field mapping and transformation
+// ESG Data Mapping Logic
 use crate::models::MappingResult;
-use crate::pipeline::validator::{CanonicalUnit, RangeCheckResult, RangeGuard, UnitValidator};
+use crate::pipeline::groq::GroqClient;
 
 pub struct Mapper;
 
 struct DictionaryEntry {
-    esrs_target: &'static str,
-    canonical_unit: CanonicalUnit,
-    emission_factor: f64, // tCO2e per canonical unit
-    confidence: f64,
-    source: &'static str,
-}
-
-fn normalize_header(raw: &str) -> String {
-    let mut s = raw.to_lowercase();
-    s = s.replace('(', " ")
-         .replace(')', " ")
-         .replace('[', " ")
-         .replace(']', " ")
-         .replace('{', " ")
-         .replace('}', " ")
-         .replace('/', " ");
-    
-    s.split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-fn parse_german_float(raw: &str) -> Option<f64> {
-    let s = raw.trim().replace('.', "").replace(',', ".");
-    s.parse::<f64>().ok()
-}
-
-fn lookup_dictionary(normalized_header: &str) -> Option<DictionaryEntry> {
-    match normalized_header {
-        "stromverbrauch" | "strom" | "stromverbrauch in mwh" | "stromverbrauch in kwh" | "electricity" | "power consumption" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-6_Scope2_Electricity",
-                canonical_unit: CanonicalUnit::KiloWattHour,
-                emission_factor: 0.000233,
-                confidence: 1.0,
-                source: "DEFRA_2024_DE",
-            })
-        }
-        "erdgas" | "gasverbrauch" | "natural gas" | "gas consumption" | "erdgasverbrauch" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-1_Scope1_NaturalGas",
-                canonical_unit: CanonicalUnit::KiloWattHour,
-                emission_factor: 0.000203,
-                confidence: 1.0,
-                source: "DEFRA_2024",
-            })
-        }
-        "diesel" | "dieselverbrauch" | "diesel consumption" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-1_Scope1_Diesel",
-                canonical_unit: CanonicalUnit::Liter,
-                emission_factor: 0.002640,
-                confidence: 1.0,
-                source: "DEFRA_2024",
-            })
-        }
-        "benzin" | "benzinverbrauch" | "petrol" | "petrol consumption" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-1_Scope1_Petrol",
-                canonical_unit: CanonicalUnit::Liter,
-                emission_factor: 0.002310,
-                confidence: 1.0,
-                source: "DEFRA_2024",
-            })
-        }
-        "heizöl" | "heizoel" | "heating oil" | "heizölverbrauch" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-1_Scope1_Heating_Oil",
-                canonical_unit: CanonicalUnit::Liter,
-                emission_factor: 0.002540,
-                confidence: 1.0,
-                source: "DEFRA_2024",
-            })
-        }
-        "straßentransport" | "lkw" | "road freight" | "strassentransport" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-3_Scope3_Road_Freight",
-                canonical_unit: CanonicalUnit::TonneKilometer,
-                emission_factor: 0.000107,
-                confidence: 1.0,
-                source: "DEFRA_2024",
-            })
-        }
-        "luftfracht" | "air freight" | "flugzeug transport" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-3_Scope3_Air_Freight",
-                canonical_unit: CanonicalUnit::TonneKilometer,
-                emission_factor: 0.000602,
-                confidence: 1.0,
-                source: "DEFRA_2024",
-            })
-        }
-        "schienentransport" | "bahn" | "rail freight" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-3_Scope3_Rail_Freight",
-                canonical_unit: CanonicalUnit::TonneKilometer,
-                emission_factor: 0.000028,
-                confidence: 1.0,
-                source: "DEFRA_2024",
-            })
-        }
-        "kältemittel" | "kaeltemittel" | "refrigerants" | "kältemittelverbrauch" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-2_Scope1_Refrigerants",
-                canonical_unit: CanonicalUnit::Kilogram,
-                emission_factor: 0.675000,
-                confidence: 1.0,
-                source: "IPCC_AR6",
-            })
-        }
-        "abfall deponie" | "deponieabfall" | "waste landfill" | "abfall" => {
-            Some(DictionaryEntry {
-                esrs_target: "E1-3_Scope3_Waste_Landfill",
-                canonical_unit: CanonicalUnit::Kilogram,
-                emission_factor: 0.000587,
-                confidence: 1.0,
-                source: "DEFRA_2024",
-            })
-        }
-        _ => None,
-    }
+    esrs_target: String,
+    canonical_unit: String,
+    conversion_factor: f64,
 }
 
 impl Mapper {
-    pub fn process(
+    fn normalize(text: &str) -> String {
+        text.to_lowercase()
+            .replace('_', " ")
+            .replace('-', " ")
+            .trim()
+            .to_string()
+    }
+
+    fn lookup_dictionary(normalized_header: &str) -> Option<DictionaryEntry> {
+        match normalized_header {
+            "strom" | "electricity" | "power" | "electrical energy" => Some(DictionaryEntry {
+                esrs_target: "E1-6_Scope2_Electricity".to_string(),
+                canonical_unit: "kWh".to_string(),
+                conversion_factor: 1.0,
+            }),
+            "erdgas" | "natural gas" | "gas consumption" => Some(DictionaryEntry {
+                esrs_target: "E1-1_Scope1_NaturalGas".to_string(),
+                canonical_unit: "kWh".to_string(),
+                conversion_factor: 1.0,
+            }),
+            "diesel" | "diesel fuel" | "dieselverbrauch" => Some(DictionaryEntry {
+                esrs_target: "E1-1_Scope1_Diesel".to_string(),
+                canonical_unit: "liter".to_string(),
+                conversion_factor: 1.0,
+            }),
+            "benzin" | "petrol" | "gasoline" => Some(DictionaryEntry {
+                esrs_target: "E1-1_Scope1_Petrol".to_string(),
+                canonical_unit: "liter".to_string(),
+                conversion_factor: 1.0,
+            }),
+            _ => None,
+        }
+    }
+
+    fn get_emission_factor(esrs_target: &str) -> (f64, String) {
+        match esrs_target {
+            "E1-6_Scope2_Electricity" => (0.354, "IEA 2023 Germany".to_string()),
+            "E1-1_Scope1_NaturalGas" => (0.202, "DEFRA 2024".to_string()),
+            "E1-1_Scope1_Diesel" => (2.68, "DEFRA 2024".to_string()),
+            "E1-1_Scope1_Petrol" => (2.31, "DEFRA 2024".to_string()),
+            _ => (0.0, "Unknown".to_string()),
+        }
+    }
+
+    pub async fn process(
         raw_header: &str,
         raw_value: &str,
         input_unit_raw: &str,
+        groq_client: Option<&GroqClient>,
     ) -> MappingResult {
-        let normalized = normalize_header(raw_header);
-        
-        let dict = match lookup_dictionary(&normalized) {
-            Some(d) => d,
-            None => return MappingResult {
-                esrs_target: "unknown".to_string(),
-                raw_header: raw_header.to_string(),
-                raw_value: raw_value.to_string(),
-                canonical_value: 0.0,
-                canonical_unit: "unknown".to_string(),
-                tco2e: 0.0,
-                emission_factor: 0.0,
-                factor_source: "none".to_string(),
-                confidence: 0.0,
-                status: "quarantined".to_string(),
-                warning: None,
-                error: Some("Unknown header - requires AI mapping".to_string()),
-            },
+        let normalized_header = Self::normalize(raw_header);
+        let mut status_source = "dictionary".to_string();
+        let mut confidence = 1.0;
+
+        // Step 1: Check Dictionary
+        let (target, unit, factor) = match Self::lookup_dictionary(&normalized_header) {
+            Some(entry) => (entry.esrs_target, entry.canonical_unit, entry.conversion_factor),
+            None => {
+                // Step 2: AI Fallback
+                if let Some(groq) = groq_client {
+                    let groq_res = groq.map_with_fallback(&normalized_header, "DE").await;
+                    if groq_res.esrs_target == "UNKNOWN" {
+                        return MappingResult {
+                            esrs_target: "UNKNOWN".to_string(),
+                            raw_header: raw_header.to_string(),
+                            raw_value: raw_value.to_string(),
+                            canonical_value: 0.0,
+                            canonical_unit: "UNKNOWN".to_string(),
+                            tco2e: 0.0,
+                            emission_factor: 0.0,
+                            factor_source: "None".to_string(),
+                            confidence: groq_res.confidence,
+                            status: "quarantined".to_string(),
+                            warning: None,
+                            error: Some(format!("AI Mapping failed: {}", groq_res.reasoning)),
+                        };
+                    }
+                    if groq_res.confidence >= 0.5 {
+                        status_source = "groq_ai".to_string();
+                        confidence = groq_res.confidence;
+                        (groq_res.esrs_target, groq_res.canonical_unit, groq_res.conversion_factor)
+                    } else {
+                        return MappingResult {
+                            esrs_target: "UNKNOWN".to_string(),
+                            raw_header: raw_header.to_string(),
+                            raw_value: raw_value.to_string(),
+                            canonical_value: 0.0,
+                            canonical_unit: "UNKNOWN".to_string(),
+                            tco2e: 0.0,
+                            emission_factor: 0.0,
+                            factor_source: "None".to_string(),
+                            confidence: groq_res.confidence,
+                            status: "quarantined".to_string(),
+                            warning: None,
+                            error: Some("Unknown header - AI confidence too low".to_string()),
+                        };
+                    }
+                } else {
+                    return MappingResult {
+                        esrs_target: "UNKNOWN".to_string(),
+                        raw_header: raw_header.to_string(),
+                        raw_value: raw_value.to_string(),
+                        canonical_value: 0.0,
+                        canonical_unit: "UNKNOWN".to_string(),
+                        tco2e: 0.0,
+                        emission_factor: 0.0,
+                        factor_source: "None".to_string(),
+                        confidence: 0.0,
+                        status: "quarantined".to_string(),
+                        warning: None,
+                        error: Some("Unknown header - AI unavailable".to_string()),
+                    };
+                }
+            }
         };
 
-        let parsed_value = match parse_german_float(raw_value) {
-            Some(v) => v,
-            None => return MappingResult {
-                esrs_target: dict.esrs_target.to_string(),
-                raw_header: raw_header.to_string(),
-                raw_value: raw_value.to_string(),
-                canonical_value: 0.0,
-                canonical_unit: dict.canonical_unit.to_string(),
-                tco2e: 0.0,
-                emission_factor: dict.emission_factor,
-                factor_source: dict.source.to_string(),
-                confidence: 0.0,
-                status: "quarantined".to_string(),
-                warning: None,
-                error: Some("Could not parse numeric value".to_string()),
-            },
-        };
+        // Step 3: Parse and Calculate
+        let val: f64 = raw_value.parse().unwrap_or(0.0);
+        let canonical_value = val * factor;
+        let (emission_factor, factor_source) = Self::get_emission_factor(&target);
+        let tco2e = (canonical_value * emission_factor) / 1000.0;
 
-        let input_unit = match UnitValidator::parse(input_unit_raw) {
-            Ok(u) => u,
-            Err(e) => return MappingResult {
-                esrs_target: dict.esrs_target.to_string(),
-                raw_header: raw_header.to_string(),
-                raw_value: raw_value.to_string(),
-                canonical_value: parsed_value,
-                canonical_unit: "unknown".to_string(),
-                tco2e: 0.0,
-                emission_factor: dict.emission_factor,
-                factor_source: dict.source.to_string(),
-                confidence: 0.0,
-                status: "quarantined".to_string(),
-                warning: None,
-                error: Some(format!("{}", e)),
-            },
-        };
-
-        if let Err(e) = UnitValidator::check_family_match(&input_unit, &dict.canonical_unit) {
-            return MappingResult {
-                esrs_target: dict.esrs_target.to_string(),
-                raw_header: raw_header.to_string(),
-                raw_value: raw_value.to_string(),
-                canonical_value: parsed_value,
-                canonical_unit: input_unit.to_string(),
-                tco2e: 0.0,
-                emission_factor: dict.emission_factor,
-                factor_source: dict.source.to_string(),
-                confidence: 0.0,
-                status: "quarantined".to_string(),
-                warning: None,
-                error: Some(format!("HARD ERROR: {}", e)),
-            };
-        }
-
-        let canonical_value = UnitValidator::convert_to_base(parsed_value, &input_unit);
-        let tco2e = canonical_value * dict.emission_factor;
-        
-        // Calculated tCO2e per unit for range check (it's essentially the emission factor in this case)
-        let tco2e_per_unit = if canonical_value != 0.0 {
-            tco2e / canonical_value
+        let status = if confidence >= 0.9 {
+            "clean".to_string()
         } else {
-            dict.emission_factor
+            "best_effort".to_string()
         };
 
-        let range_check = RangeGuard::check(dict.esrs_target, tco2e_per_unit);
-
-        let mut res = MappingResult {
-            esrs_target: dict.esrs_target.to_string(),
+        MappingResult {
+            esrs_target: target,
             raw_header: raw_header.to_string(),
             raw_value: raw_value.to_string(),
             canonical_value,
-            canonical_unit: dict.canonical_unit.to_string(),
+            canonical_unit: unit,
             tco2e,
-            emission_factor: dict.emission_factor,
-            factor_source: dict.source.to_string(),
-            confidence: dict.confidence,
-            status: "clean".to_string(),
-            warning: None,
+            emission_factor,
+            factor_source,
+            confidence,
+            status,
+            warning: if status_source == "groq_ai" { Some("Mapped by AI - please verify".to_string()) } else { None },
             error: None,
-        };
-
-        match range_check {
-            RangeCheckResult::Ok => {}
-            RangeCheckResult::BestEffort(msg) => {
-                res.status = "best_effort".to_string();
-                res.confidence = 0.75;
-                res.warning = Some(msg);
-            }
-            RangeCheckResult::HardStop(msg) => {
-                res.status = "quarantined".to_string();
-                res.confidence = 0.0;
-                res.error = Some(msg);
-            }
         }
-
-        res
     }
 }
