@@ -1,0 +1,254 @@
+[
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_US_National",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.385,
+    "Source_Authority": "US EPA eGRID 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_US_CAMX",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.220,
+    "Source_Authority": "US EPA eGRID 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_US_ERCT",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.380,
+    "Source_Authority": "US EPA eGRID 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_US_RFCE",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.315,
+    "Source_Authority": "US EPA eGRID 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_US_SRVC",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.295,
+    "Source_Authority": "US EPA eGRID 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_US_NWPP",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.250,
+    "Source_Authority": "US EPA eGRID 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_UK_Grid",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.2005,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_DE_Grid",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.385,
+    "Source_Authority": "DE UBA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_AT_Grid",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.150,
+    "Source_Authority": "AT UBA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_CH_Grid",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.045,
+    "Source_Authority": "CH BAFU 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope2_LocationBased_Electricity_EU_Average",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.255,
+    "Source_Authority": "EU EEA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_StationaryCombustion_NaturalGas_Vol",
+    "Base_Unit": "m3",
+    "Emission_Factor_kgCO2e": 1.932,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_StationaryCombustion_NaturalGas_Energy",
+    "Base_Unit": "kWh",
+    "Emission_Factor_kgCO2e": 0.183,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_StationaryCombustion_NaturalGas_EU_Vol",
+    "Base_Unit": "m3",
+    "Emission_Factor_kgCO2e": 2.015,
+    "Source_Authority": "DE UBA 2023"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_MobileCombustion_Diesel_Fleet_US",
+    "Base_Unit": "liters",
+    "Emission_Factor_kgCO2e": 2.680,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_MobileCombustion_Diesel_Fleet_UK",
+    "Base_Unit": "liters",
+    "Emission_Factor_kgCO2e": 2.705,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_MobileCombustion_Gasoline_Fleet_US",
+    "Base_Unit": "liters",
+    "Emission_Factor_kgCO2e": 2.310,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_MobileCombustion_Gasoline_Fleet_UK",
+    "Base_Unit": "liters",
+    "Emission_Factor_kgCO2e": 2.193,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_StationaryCombustion_HeatingOil",
+    "Base_Unit": "liters",
+    "Emission_Factor_kgCO2e": 2.690,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_StationaryCombustion_Propane_US",
+    "Base_Unit": "liters",
+    "Emission_Factor_kgCO2e": 1.510,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_StationaryCombustion_Propane_UK",
+    "Base_Unit": "liters",
+    "Emission_Factor_kgCO2e": 1.550,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_BusinessTravel_Air_ShortHaul_UK",
+    "Base_Unit": "km",
+    "Emission_Factor_kgCO2e": 0.151,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_BusinessTravel_Air_LongHaul_UK",
+    "Base_Unit": "km",
+    "Emission_Factor_kgCO2e": 0.190,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_BusinessTravel_Air_ShortHaul_US",
+    "Base_Unit": "km",
+    "Emission_Factor_kgCO2e": 0.165,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_BusinessTravel_Air_LongHaul_US",
+    "Base_Unit": "km",
+    "Emission_Factor_kgCO2e": 0.200,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_BusinessTravel_Rail_DE",
+    "Base_Unit": "km",
+    "Emission_Factor_kgCO2e": 0.035,
+    "Source_Authority": "DE UBA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_BusinessTravel_Rail_UK",
+    "Base_Unit": "km",
+    "Emission_Factor_kgCO2e": 0.035,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_BusinessTravel_Rail_US",
+    "Base_Unit": "km",
+    "Emission_Factor_kgCO2e": 0.101,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_UpstreamTransportation_HGV_US",
+    "Base_Unit": "km",
+    "Emission_Factor_kgCO2e": 0.901,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_UpstreamTransportation_HGV_UK",
+    "Base_Unit": "km",
+    "Emission_Factor_kgCO2e": 0.850,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_PurchasedGoods_WaterSupply_UK",
+    "Base_Unit": "m3",
+    "Emission_Factor_kgCO2e": 0.149,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_PurchasedGoods_WaterSupply_US",
+    "Base_Unit": "m3",
+    "Emission_Factor_kgCO2e": 0.350,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_WasteGenerated_Wastewater_UK",
+    "Base_Unit": "m3",
+    "Emission_Factor_kgCO2e": 0.272,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_WasteGenerated_MunicipalWaste_US",
+    "Base_Unit": "tonne",
+    "Emission_Factor_kgCO2e": 450.5,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_WasteGenerated_MunicipalWaste_UK",
+    "Base_Unit": "tonne",
+    "Emission_Factor_kgCO2e": 465.0,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_WasteGenerated_RecycledWaste_UK",
+    "Base_Unit": "tonne",
+    "Emission_Factor_kgCO2e": 21.3,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_WasteGenerated_HazardousWaste_UK",
+    "Base_Unit": "tonne",
+    "Emission_Factor_kgCO2e": 1440.0,
+    "Source_Authority": "UK DEFRA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope3_WasteGenerated_HazardousWaste_US",
+    "Base_Unit": "tonne",
+    "Emission_Factor_kgCO2e": 1500.0,
+    "Source_Authority": "US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_FugitiveEmissions_Refrigerant_R134a",
+    "Base_Unit": "kg",
+    "Emission_Factor_kgCO2e": 1430.0,
+    "Source_Authority": "IPCC AR6 / US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_FugitiveEmissions_Refrigerant_R410A",
+    "Base_Unit": "kg",
+    "Emission_Factor_kgCO2e": 2088.0,
+    "Source_Authority": "IPCC AR6 / US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_FugitiveEmissions_Refrigerant_SF6",
+    "Base_Unit": "kg",
+    "Emission_Factor_kgCO2e": 23500.0,
+    "Source_Authority": "IPCC AR6 / US EPA 2024"
+  },
+  {
+    "ESRS_Target": "E1_Scope1_FugitiveEmissions_Refrigerant_R32",
+    "Base_Unit": "kg",
+    "Emission_Factor_kgCO2e": 675.0,
+    "Source_Authority": "IPCC AR6 / US EPA 2024"
+  }
+]

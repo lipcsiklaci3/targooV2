@@ -1,7 +1,6 @@
 // Result distribution and storage coordination
 use crate::models::MappingResult;
 use crate::pipeline::mapper::Mapper;
-use crate::pipeline::groq::GroqClient;
 use std::io::Cursor;
 use calamine::{Reader, Xlsx, Data};
 use csv::ReaderBuilder;
@@ -146,7 +145,7 @@ fn extract_unit_hint(header: &str) -> String {
     "".to_string()
 }
 
-async fn process_rows(rows: Vec<RawRow>, groq_client: Option<&GroqClient>) -> DispatchResult {
+async fn process_rows(rows: Vec<RawRow>) -> DispatchResult {
     let mut clean = Vec::new();
     let mut best_effort = Vec::new();
     let mut quarantined = Vec::new();
@@ -157,7 +156,7 @@ async fn process_rows(rows: Vec<RawRow>, groq_client: Option<&GroqClient>) -> Di
         total_rows += 1;
         for (header, value) in row.headers.iter().zip(row.values.iter()) {
             let unit_hint = extract_unit_hint(header);
-            let res = Mapper::process(header, value, &unit_hint, groq_client).await;
+            let res = Mapper::process(header, value, &unit_hint).await;
             
             match res.status.as_str() {
                 "clean" => {
@@ -188,7 +187,7 @@ async fn process_rows(rows: Vec<RawRow>, groq_client: Option<&GroqClient>) -> Di
 pub struct Dispatcher;
 
 impl Dispatcher {
-    pub async fn process_file(filename: &str, data: &[u8], groq_client: Option<&GroqClient>) -> DispatchResult {
+    pub async fn process_file(filename: &str, data: &[u8]) -> DispatchResult {
         let file_type = detect_file_type(filename);
         
         let rows_res = match file_type {
@@ -200,7 +199,7 @@ impl Dispatcher {
         };
 
         match rows_res {
-            Ok(rows) => process_rows(rows, groq_client).await,
+            Ok(rows) => process_rows(rows).await,
             Err(e) => DispatchResult {
                 clean: Vec::new(),
                 best_effort: Vec::new(),
@@ -212,3 +211,4 @@ impl Dispatcher {
         }
     }
 }
+

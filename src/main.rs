@@ -1,63 +1,83 @@
-// Entry point for the Shuttle-powered Axum web server
-use shuttle_axum::ShuttleAxum;
+mod db;
+mod ingest;
+mod physics;
+mod exporter;
+mod hitl;
+mod processor;
+
+use axum::{routing::{get, post}, Router, Json, extract::{Path, State}};
+use serde_json::{json, Value};
+use tower_http::cors::CorsLayer;
 use std::sync::Arc;
-use crate::db::Database;
-use crate::pipeline::groq::GroqClient;
+use libsql::{Connection, params};
 
-pub mod db;
-pub mod models;
-pub mod pipeline;
-pub mod routes;
-pub mod output;
+#[tokio::main]
+async fn main() {
+    // 1. Initialize Database
+    let conn = db::init_db().await;
+    let shared_conn = Arc::new(conn);
+    println!("[SYSTEM] Local libSQL database initialized: targoo.db");
 
-pub struct AppState {
-    pub db: Option<Database>,
-    pub groq: Option<GroqClient>,
+    // 2. SEEDER: Load infrastructure, dictionary, and emission factors
+    db::seed_all(&shared_conn).await;
+
+    // 3. CORS: Truly permissive for GitHub Codespaces
+    let cors = CorsLayer::permissive()
+        .allow_origin(tower_http::cors::Any)
+        .allow_methods(tower_http::cors::Any)
+        .allow_headers(tower_http::cors::Any);
+
+    let app = Router::new()
+        .route("/api/health", get(health_check))
+        .route("/api/upload", post(ingest::upload_handler))
+        .route("/api/download/:job_id", get(exporter::download_package))
+        .route("/api/jobs/:job_id/status", get(get_job_status))
+        .route("/api/jobs/:job_id/hitl", get(get_hitl_items))
+        .route("/api/hitl/resolve", post(hitl::resolve_hitl_endpoint))
+        .layer(cors)
+        .with_state(shared_conn);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    println!("[LOG] Targoo V2 Kernel is running on port 3000...");
+    axum::serve(listener, app).await.unwrap();
 }
 
-#[shuttle_runtime::main]
-async fn main() -> ShuttleAxum {
-    let database_url = std::env::var("TURSO_DATABASE_URL");
-    let auth_token = std::env::var("TURSO_AUTH_TOKEN");
-    let groq_api_key = std::env::var("GROQ_API_KEY");
+async fn health_check() -> Json<Value> {
+    Json(json!({
+        "status": "SYSTEM_ONLINE",
+        "message": "Targoo V2 Engine Ready and Seeded"
+    }))
+}
 
-    let db = match (database_url, auth_token) {
-        (Ok(url), Ok(token)) => {
-            match Database::new(&url, &token).await {
-                Ok(database) => {
-                    if let Err(e) = database.initialize().await {
-                        eprintln!("Failed to initialize database: {}", e);
-                        None
-                    } else {
-                        println!("Connected to Turso database");
-                        Some(database)
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Failed to connect to Turso: {}", e);
-                    None
-                }
-            }
-        }
-        _ => {
-            println!("Running without database - results will not be persisted");
-            None
-        }
-    };
+async fn get_job_status(
+    Path(job_id): Path<String>,
+    State(conn): State<Arc<Connection>>,
+) -> Json<Value> {
+    let mut rows = conn.query("SELECT status, total_rows, processed_rows FROM job_registry WHERE job_id = ?", params![job_id.clone()]).await.unwrap();
+    if let Ok(Some(row)) = rows.next().await {
+        Json(json!({
+            "job_id": job_id,
+            "status": row.get::<String>(0).unwrap(),
+            "total_rows": row.get::<i64>(1).unwrap(),
+            "processed_rows": row.get::<i64>(2).unwrap()
+        }))
+    } else {
+        Json(json!({"status": "NOT_FOUND"}))
+    }
+}
 
-    let groq = match groq_api_key {
-        Ok(key) => {
-            println!("Groq AI client initialized");
-            Some(GroqClient::new(key))
-        },
-        Err(_) => {
-            println!("Groq API key not found - AI fallback disabled");
-            None
-        }
-    };
-
-    let state = Arc::new(AppState { db, groq });
-    let router = routes::jobs::create_router(state);
-
-    Ok(router.into())
+async fn get_hitl_items(
+    Path(job_id): Path<String>,
+    State(conn): State<Arc<Connection>>,
+) -> Json<Value> {
+    let mut rows = conn.query("SELECT id, raw_header, sample_values FROM hitl_queue WHERE job_id = ? AND status = 'AWAITING_HUMAN'", params![job_id.clone()]).await.unwrap();
+    let mut items = Vec::new();
+    while let Some(row) = rows.next().await.unwrap() {
+        items.push(json!({
+            "hitl_id": row.get::<i64>(0).unwrap(),
+            "raw_header": row.get::<String>(1).unwrap(),
+            "sample_values": row.get::<String>(2).unwrap()
+        }));
+    }
+    Json(json!({ "job_id": job_id, "hitl_items": items }))
 }

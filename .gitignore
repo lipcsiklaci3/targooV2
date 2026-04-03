@@ -1,2 +1,14 @@
 target/
 node_modules
+.env
+targoo.db
+temp/
+*.zip
+.env
+targoo.db
+temp/
+*.zip
+projekt_dump.txt
+projekt_osszesitve.txt
+repo_tartalma.txt
+frontend/.next/
